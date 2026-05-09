@@ -139,6 +139,35 @@ Build your own with:
 
 ---
 
+## 📱 iOS Notes
+
+Loopify is built on Flutter, so the core app — habits, streaks, scheduled notifications, Hive persistence, projects, achievements — runs on iOS as-is once the project is opened on a Mac.
+
+### 🍏 First-time setup on macOS
+
+```bash
+flutter pub get
+cd ios
+pod install
+open Runner.xcworkspace
+```
+
+> ⚙️ Minimum iOS deployment target is **13.0** (required by `flutter_local_notifications` 17.x).
+> 🆔 Bundle identifier matches the Android app: `com.loopify.loopify`.
+> 🔔 Notification permissions are requested at runtime by `flutter_local_notifications`. Foreground banners are wired through `UNUserNotificationCenter` in `AppDelegate.swift`.
+
+### 🪟 Home-screen widget on iOS
+
+The **Android home-screen widget does not auto-port to iOS**. iOS widgets are a separate native surface (WidgetKit) and need their own target inside Xcode. To add one later:
+
+1. ➕ In Xcode: `File → New → Target → Widget Extension`
+2. 🤝 Share data with the Flutter app via an **App Group** (e.g. `group.com.loopify.loopify`) so `home_widget` can write into it
+3. 🎨 Re-implement the widget UI in **SwiftUI** (mirroring `LoopifyWidget.kt`'s 3-state vibe)
+
+Until then, on iOS the widget is gracefully skipped — `home_widget` calls become no-ops and the rest of the app behaves normally.
+
+---
+
 ## 🚧 Roadmap
 
 - [ ] 🍎 iOS widget support
