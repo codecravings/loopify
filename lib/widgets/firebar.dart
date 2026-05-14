@@ -45,14 +45,18 @@ class _FirebarState extends State<Firebar> with SingleTickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    // Clamp opacity values to max 1.0
+    final gradientOpacity = (0.8 * brightness).clamp(0.0, 1.0);
+    final shadowOpacity = (0.5 * brightness).clamp(0.0, 1.0);
+
     return Container(
       padding: const EdgeInsets.all(16),
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Colors.orange.withOpacity(0.8 * brightness),
-            Colors.red.withOpacity(0.8 * brightness),
+            Colors.orange.withOpacity(gradientOpacity),
+            Colors.red.withOpacity(gradientOpacity),
           ],
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
@@ -60,7 +64,7 @@ class _FirebarState extends State<Firebar> with SingleTickerProviderStateMixin {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.orange.withOpacity(0.5 * brightness),
+            color: Colors.orange.withOpacity(shadowOpacity),
             blurRadius: 12,
             spreadRadius: 2,
           ),
