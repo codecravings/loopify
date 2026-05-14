@@ -40,6 +40,9 @@ class UserPrefs {
   @HiveField(11)
   final int reminderMinute; // Minute for evening reminder (0-59)
 
+  @HiveField(12, defaultValue: [])
+  final List<String> hiddenHabits; // List of hidden predefined habit names
+
   UserPrefs({
     required this.proteinTarget,
     required this.meditationDefault,
@@ -53,6 +56,7 @@ class UserPrefs {
     required this.notificationsEnabled,
     required this.reminderHour,
     required this.reminderMinute,
+    this.hiddenHabits = const [],
   });
 
   UserPrefs copyWith({
@@ -68,6 +72,7 @@ class UserPrefs {
     bool? notificationsEnabled,
     int? reminderHour,
     int? reminderMinute,
+    List<String>? hiddenHabits,
   }) {
     return UserPrefs(
       proteinTarget: proteinTarget ?? this.proteinTarget,
@@ -82,6 +87,7 @@ class UserPrefs {
       notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
       reminderHour: reminderHour ?? this.reminderHour,
       reminderMinute: reminderMinute ?? this.reminderMinute,
+      hiddenHabits: hiddenHabits ?? this.hiddenHabits,
     );
   }
 
@@ -101,4 +107,36 @@ class UserPrefs {
       reminderMinute: 0,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'proteinTarget': proteinTarget,
+        'meditationDefault': meditationDefault,
+        'studyDefault': studyDefault,
+        'chessDefault': chessDefault,
+        'cyclingDefault': cyclingDefault,
+        'strictStreakMode': strictStreakMode,
+        'hapticsEnabled': hapticsEnabled,
+        'highContrastMode': highContrastMode,
+        'onboardingComplete': onboardingComplete,
+        'notificationsEnabled': notificationsEnabled,
+        'reminderHour': reminderHour,
+        'reminderMinute': reminderMinute,
+        'hiddenHabits': hiddenHabits,
+      };
+
+  factory UserPrefs.fromJson(Map<String, dynamic> json) => UserPrefs(
+        proteinTarget: json['proteinTarget'] as int,
+        meditationDefault: json['meditationDefault'] as int,
+        studyDefault: json['studyDefault'] as int,
+        chessDefault: json['chessDefault'] as int,
+        cyclingDefault: json['cyclingDefault'] as int,
+        strictStreakMode: json['strictStreakMode'] as bool,
+        hapticsEnabled: json['hapticsEnabled'] as bool,
+        highContrastMode: json['highContrastMode'] as bool,
+        onboardingComplete: json['onboardingComplete'] as bool,
+        notificationsEnabled: json['notificationsEnabled'] as bool,
+        reminderHour: json['reminderHour'] as int,
+        reminderMinute: json['reminderMinute'] as int,
+        hiddenHabits: (json['hiddenHabits'] as List?)?.map((e) => e as String).toList() ?? const [],
+      );
 }

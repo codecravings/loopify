@@ -29,13 +29,15 @@ class UserPrefsAdapter extends TypeAdapter<UserPrefs> {
       notificationsEnabled: fields[9] as bool,
       reminderHour: fields[10] as int,
       reminderMinute: fields[11] as int,
+      hiddenHabits:
+          fields[12] == null ? [] : (fields[12] as List).cast<String>(),
     );
   }
 
   @override
   void write(BinaryWriter writer, UserPrefs obj) {
     writer
-      ..writeByte(12)
+      ..writeByte(13)
       ..writeByte(0)
       ..write(obj.proteinTarget)
       ..writeByte(1)
@@ -59,7 +61,9 @@ class UserPrefsAdapter extends TypeAdapter<UserPrefs> {
       ..writeByte(10)
       ..write(obj.reminderHour)
       ..writeByte(11)
-      ..write(obj.reminderMinute);
+      ..write(obj.reminderMinute)
+      ..writeByte(12)
+      ..write(obj.hiddenHabits);
   }
 
   @override
