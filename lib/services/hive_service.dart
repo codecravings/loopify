@@ -7,6 +7,7 @@ import '../models/user_prefs.dart';
 import '../models/custom_habit.dart';
 import '../models/user_stats.dart';
 import '../models/achievement_note.dart';
+import '../models/challenge.dart';
 
 class HiveService {
   static const String _dayLogsBox = 'dayLogs';
@@ -16,6 +17,7 @@ class HiveService {
   static const String _customHabitsBox = 'customHabits';
   static const String _userStatsBox = 'userStats';
   static const String _achievementNotesBox = 'achievementNotes';
+  static const String _challengesBox = 'challenges';
 
   static Future<void> init() async {
     await Hive.initFlutter();
@@ -29,6 +31,7 @@ class HiveService {
     Hive.registerAdapter(CustomHabitAdapter());
     Hive.registerAdapter(UserStatsAdapter());
     Hive.registerAdapter(AchievementNoteAdapter());
+    Hive.registerAdapter(ChallengeAdapter());
 
     // Open boxes
     await Hive.openBox<DayLog>(_dayLogsBox);
@@ -38,6 +41,7 @@ class HiveService {
     await Hive.openBox<CustomHabit>(_customHabitsBox);
     await Hive.openBox<UserStats>(_userStatsBox);
     await Hive.openBox<AchievementNote>(_achievementNotesBox);
+    await Hive.openBox<Challenge>(_challengesBox);
   }
 
   // Day Logs
@@ -168,5 +172,36 @@ class HiveService {
   static List<AchievementNote> getRecentAchievementNotes(int count) {
     final allNotes = getAllAchievementNotes();
     return allNotes.take(count).toList();
+  }
+
+  // Challenges
+  static Box<Challenge> get challengesBox => Hive.box<Challenge>(_challengesBox);
+
+  static Future<void> saveChallenge(Challenge challenge) async {
+    await challengesBox.put(challenge.id, challenge);
+  }
+
+  static Future<void> deleteChallenge(String id) async {
+    await challengesBox.delete(id);
+  }
+
+  static Challenge? getChallenge(String id) {
+    return challengesBox.get(id);
+  }
+
+  static List<Challenge> getAllChallenges() {
+    return challengesBox.values.toList();
+  }
+
+  static List<Challenge> getActiveChallenges() {
+    return challengesBox.values.where((c) => c.isActive).toList();
+  }
+
+  static List<Challenge> getTodayChallenges() {
+    final now = DateTime.now();
+    final todayStart = DateTime(now.year, now.month, now.day);
+    return challengesBox.values
+        .where((c) => c.createdAt.isAfter(todayStart) || c.createdAt.isAtSameMomentAs(todayStart))
+        .toList();
   }
 }
