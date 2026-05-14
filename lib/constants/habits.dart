@@ -55,9 +55,9 @@ const Map<HabitType, HabitInfo> habitDetails = {
     color: Color(0xFF2196F3), // Blue
   ),
   HabitType.jawGym: HabitInfo(
-    name: 'Jaw Gym',
-    microcopy: 'Sharp enough to cut procrastination.',
-    icon: Icons.face,
+    name: 'Gym',
+    microcopy: 'Sweat now, flex later.',
+    icon: Icons.fitness_center,
     color: Color(0xFFFF9800), // Orange
   ),
   HabitType.chewQuest: HabitInfo(
