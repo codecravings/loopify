@@ -30,13 +30,15 @@ class UserStatsAdapter extends TypeAdapter<UserStats> {
       streakBreakHistory: (fields[10] as List).cast<DateTime>(),
       longestColdStreak: fields[11] as int,
       totalMoneyLost: fields[12] as double,
+      lastRecoveryDate: fields[13] as DateTime?,
+      totalRecoveriesUsed: fields[14] == null ? 0 : fields[14] as int,
     );
   }
 
   @override
   void write(BinaryWriter writer, UserStats obj) {
     writer
-      ..writeByte(13)
+      ..writeByte(15)
       ..writeByte(0)
       ..write(obj.coldStreak)
       ..writeByte(1)
@@ -62,7 +64,11 @@ class UserStatsAdapter extends TypeAdapter<UserStats> {
       ..writeByte(11)
       ..write(obj.longestColdStreak)
       ..writeByte(12)
-      ..write(obj.totalMoneyLost);
+      ..write(obj.totalMoneyLost)
+      ..writeByte(13)
+      ..write(obj.lastRecoveryDate)
+      ..writeByte(14)
+      ..write(obj.totalRecoveriesUsed);
   }
 
   @override

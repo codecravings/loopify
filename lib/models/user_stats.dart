@@ -43,6 +43,12 @@ class UserStats {
   @HiveField(12)
   final double totalMoneyLost; // For financial accountability
 
+  @HiveField(13)
+  final DateTime? lastRecoveryDate;
+
+  @HiveField(14, defaultValue: 0)
+  final int totalRecoveriesUsed;
+
   UserStats({
     this.coldStreak = 0,
     this.totalStreakBreaks = 0,
@@ -57,6 +63,8 @@ class UserStats {
     this.streakBreakHistory = const [],
     this.longestColdStreak = 0,
     this.totalMoneyLost = 0.0,
+    this.lastRecoveryDate,
+    this.totalRecoveriesUsed = 0,
   });
 
   UserStats copyWith({
@@ -73,6 +81,8 @@ class UserStats {
     List<DateTime>? streakBreakHistory,
     int? longestColdStreak,
     double? totalMoneyLost,
+    DateTime? lastRecoveryDate,
+    int? totalRecoveriesUsed,
   }) {
     return UserStats(
       coldStreak: coldStreak ?? this.coldStreak,
@@ -88,11 +98,13 @@ class UserStats {
       streakBreakHistory: streakBreakHistory ?? this.streakBreakHistory,
       longestColdStreak: longestColdStreak ?? this.longestColdStreak,
       totalMoneyLost: totalMoneyLost ?? this.totalMoneyLost,
+      lastRecoveryDate: lastRecoveryDate ?? this.lastRecoveryDate,
+      totalRecoveriesUsed: totalRecoveriesUsed ?? this.totalRecoveriesUsed,
     );
   }
 
   static UserStats createInitial() {
-    return UserStats();
+    return UserStats(streakRecoveryTokens: 1);
   }
 
   // Calculate success rate based on actual habit completion from day logs
@@ -145,4 +157,50 @@ class UserStats {
     if (coldStreak >= 3) return '💀 Rock bottom. Time to rise.';
     return '';
   }
+
+  Map<String, dynamic> toJson() => {
+        'coldStreak': coldStreak,
+        'totalStreakBreaks': totalStreakBreaks,
+        'lastStreakBreakDate': lastStreakBreakDate?.toIso8601String(),
+        'lastBrokenStreak': lastBrokenStreak,
+        'lifetimeHabitsCompleted': lifetimeHabitsCompleted,
+        'totalDaysActive': totalDaysActive,
+        'unlockedBadges': unlockedBadges,
+        'streakRecoveryTokens': streakRecoveryTokens,
+        'habitLevels': habitLevels,
+        'currentTheme': currentTheme,
+        'streakBreakHistory': streakBreakHistory.map((d) => d.toIso8601String()).toList(),
+        'longestColdStreak': longestColdStreak,
+        'totalMoneyLost': totalMoneyLost,
+        'lastRecoveryDate': lastRecoveryDate?.toIso8601String(),
+        'totalRecoveriesUsed': totalRecoveriesUsed,
+      };
+
+  factory UserStats.fromJson(Map<String, dynamic> json) => UserStats(
+        coldStreak: json['coldStreak'] as int? ?? 0,
+        totalStreakBreaks: json['totalStreakBreaks'] as int? ?? 0,
+        lastStreakBreakDate: json['lastStreakBreakDate'] == null
+            ? null
+            : DateTime.parse(json['lastStreakBreakDate'] as String),
+        lastBrokenStreak: json['lastBrokenStreak'] as int? ?? 0,
+        lifetimeHabitsCompleted: json['lifetimeHabitsCompleted'] as int? ?? 0,
+        totalDaysActive: json['totalDaysActive'] as int? ?? 0,
+        unlockedBadges:
+            (json['unlockedBadges'] as List?)?.map((e) => e as String).toList() ?? const [],
+        streakRecoveryTokens: json['streakRecoveryTokens'] as int? ?? 0,
+        habitLevels: (json['habitLevels'] as Map?)
+                ?.map((k, v) => MapEntry(k as String, v as int)) ??
+            const {},
+        currentTheme: json['currentTheme'] as String? ?? 'default',
+        streakBreakHistory: (json['streakBreakHistory'] as List?)
+                ?.map((e) => DateTime.parse(e as String))
+                .toList() ??
+            const [],
+        longestColdStreak: json['longestColdStreak'] as int? ?? 0,
+        totalMoneyLost: (json['totalMoneyLost'] as num?)?.toDouble() ?? 0.0,
+        lastRecoveryDate: json['lastRecoveryDate'] == null
+            ? null
+            : DateTime.parse(json['lastRecoveryDate'] as String),
+        totalRecoveriesUsed: json['totalRecoveriesUsed'] as int? ?? 0,
+      );
 }
