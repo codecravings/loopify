@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/custom_habit.dart';
 import '../providers/custom_habit_provider.dart';
+import '../providers/user_prefs_provider.dart';
+import '../constants/habits.dart';
 import '../widgets/add_custom_habit_dialog.dart';
 
 class ManageHabitsScreen extends ConsumerWidget {
@@ -10,73 +12,192 @@ class ManageHabitsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final customHabits = ref.watch(customHabitsProvider);
+    final userPrefs = ref.watch(userPrefsProvider);
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF0A0E21),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1D1E33),
-        title: const Text('Manage Custom Habits'),
-        elevation: 0,
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          showDialog(
-            context: context,
-            builder: (context) => const AddCustomHabitDialog(),
-          );
-        },
-        backgroundColor: const Color(0xFFFF6B35),
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text(
-          'Add Habit',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        backgroundColor: const Color(0xFF0A0E21),
+        appBar: AppBar(
+          backgroundColor: const Color(0xFF1D1E33),
+          title: const Text('Manage Habits'),
+          elevation: 0,
+          bottom: const TabBar(
+            indicatorColor: Color(0xFFFF6B35),
+            labelColor: Color(0xFFFF6B35),
+            unselectedLabelColor: Colors.white54,
+            tabs: [
+              Tab(text: 'Default Habits'),
+              Tab(text: 'Custom Habits'),
+            ],
+          ),
+        ),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () {
+            showDialog(
+              context: context,
+              builder: (context) => const AddCustomHabitDialog(),
+            );
+          },
+          backgroundColor: const Color(0xFFFF6B35),
+          icon: const Icon(Icons.add, color: Colors.white),
+          label: const Text(
+            'Add Habit',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+        ),
+        body: TabBarView(
+          children: [
+            // Default Habits Tab
+            _DefaultHabitsTab(hiddenHabits: userPrefs.hiddenHabits),
+            // Custom Habits Tab
+            _CustomHabitsTab(customHabits: customHabits),
+          ],
         ),
       ),
-      body: customHabits.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.auto_awesome,
-                    size: 80,
-                    color: Colors.white.withOpacity(0.3),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No custom habits yet',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.5),
-                      fontSize: 18,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Tap + to create your first custom habit!',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.3),
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: customHabits.length,
-              itemBuilder: (context, index) {
-                final habit = customHabits[index];
-                return _HabitCard(habit: habit);
-              },
-            ),
     );
   }
 }
 
-class _HabitCard extends ConsumerWidget {
+class _DefaultHabitsTab extends ConsumerWidget {
+  final List<String> hiddenHabits;
+
+  const _DefaultHabitsTab({required this.hiddenHabits});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: HabitType.values.length,
+      itemBuilder: (context, index) {
+        final habitType = HabitType.values[index];
+        final info = habitDetails[habitType]!;
+        final habitName = habitType.toString().split('.').last;
+        final isHidden = hiddenHabits.contains(habitName);
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1D1E33),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isHidden
+                  ? Colors.white.withOpacity(0.1)
+                  : info.color.withOpacity(0.5),
+              width: 2,
+            ),
+          ),
+          child: ListTile(
+            contentPadding: const EdgeInsets.all(12),
+            leading: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: isHidden
+                    ? Colors.grey.withOpacity(0.2)
+                    : info.color.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                info.icon,
+                color: isHidden ? Colors.grey : info.color,
+                size: 24,
+              ),
+            ),
+            title: Text(
+              info.name,
+              style: TextStyle(
+                color: isHidden ? Colors.white38 : Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                decoration: isHidden ? TextDecoration.lineThrough : null,
+              ),
+            ),
+            subtitle: Text(
+              info.microcopy,
+              style: TextStyle(
+                color: Colors.white.withOpacity(isHidden ? 0.3 : 0.6),
+                fontSize: 12,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            trailing: Switch(
+              value: !isHidden,
+              onChanged: (value) {
+                ref.read(userPrefsProvider.notifier).toggleHabitVisibility(habitName);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      value ? '${info.name} enabled' : '${info.name} hidden',
+                    ),
+                    backgroundColor: value ? info.color : Colors.grey,
+                    duration: const Duration(seconds: 1),
+                  ),
+                );
+              },
+              activeColor: info.color,
+              activeTrackColor: info.color.withOpacity(0.3),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _CustomHabitsTab extends StatelessWidget {
+  final List<CustomHabit> customHabits;
+
+  const _CustomHabitsTab({required this.customHabits});
+
+  @override
+  Widget build(BuildContext context) {
+    if (customHabits.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.auto_awesome,
+              size: 80,
+              color: Colors.white.withOpacity(0.3),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No custom habits yet',
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.5),
+                fontSize: 18,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Tap + to create your first custom habit!',
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.3),
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: customHabits.length,
+      itemBuilder: (context, index) {
+        final habit = customHabits[index];
+        return _CustomHabitCard(habit: habit);
+      },
+    );
+  }
+}
+
+class _CustomHabitCard extends ConsumerWidget {
   final CustomHabit habit;
 
-  const _HabitCard({required this.habit});
+  const _CustomHabitCard({required this.habit});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -149,7 +270,7 @@ class _HabitCard extends ConsumerWidget {
                           color: Colors.grey.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Text(
+                        child: const Text(
                           'Inactive',
                           style: TextStyle(
                             color: Colors.grey,
