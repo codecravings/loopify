@@ -62,4 +62,22 @@ class StreakState {
     if (currentStreak >= 1) return 'Origin Story';
     return 'Start Your Journey';
   }
+
+  Map<String, dynamic> toJson() => {
+        'currentStreak': currentStreak,
+        'bestStreak': bestStreak,
+        'lastLoggedDate': lastLoggedDate?.toIso8601String(),
+        'gracePassesUsedThisWeek': gracePassesUsedThisWeek,
+        'weekStartDate': weekStartDate.toIso8601String(),
+      };
+
+  factory StreakState.fromJson(Map<String, dynamic> json) => StreakState(
+        currentStreak: json['currentStreak'] as int,
+        bestStreak: json['bestStreak'] as int,
+        lastLoggedDate: json['lastLoggedDate'] == null
+            ? null
+            : DateTime.parse(json['lastLoggedDate'] as String),
+        gracePassesUsedThisWeek: json['gracePassesUsedThisWeek'] as int,
+        weekStartDate: DateTime.parse(json['weekStartDate'] as String),
+      );
 }

@@ -56,4 +56,20 @@ class AchievementNote {
         return '🎯';
     }
   }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'note': note,
+        'date': date.toIso8601String(),
+        'emoji': emoji,
+        'category': category,
+      };
+
+  factory AchievementNote.fromJson(Map<String, dynamic> json) => AchievementNote(
+        id: json['id'] as String,
+        note: json['note'] as String,
+        date: DateTime.parse(json['date'] as String),
+        emoji: json['emoji'] as String? ?? '🏆',
+        category: json['category'] as int? ?? 0,
+      );
 }

@@ -106,4 +106,32 @@ class CustomHabit {
       createdAt: DateTime.now(),
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'microcopy': microcopy,
+        'iconCodePoint': iconCodePoint,
+        'colorValue': colorValue,
+        'isDuration': isDuration,
+        'isNumeric': isNumeric,
+        'unit': unit,
+        'target': target,
+        'active': active,
+        'createdAt': createdAt.toIso8601String(),
+      };
+
+  factory CustomHabit.fromJson(Map<String, dynamic> json) => CustomHabit(
+        id: json['id'] as String,
+        name: json['name'] as String,
+        microcopy: json['microcopy'] as String,
+        iconCodePoint: json['iconCodePoint'] as int,
+        colorValue: json['colorValue'] as int,
+        isDuration: json['isDuration'] as bool? ?? false,
+        isNumeric: json['isNumeric'] as bool? ?? false,
+        unit: json['unit'] as String?,
+        target: json['target'] as int?,
+        active: json['active'] as bool? ?? true,
+        createdAt: DateTime.parse(json['createdAt'] as String),
+      );
 }

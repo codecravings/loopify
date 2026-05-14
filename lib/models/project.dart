@@ -109,4 +109,39 @@ class Project {
   int get totalSessions {
     return sessionDates.length;
   }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'colorHex': colorHex,
+        'icon': icon,
+        'active': active,
+        'createdAt': createdAt.toIso8601String(),
+        'archivedAt': archivedAt?.toIso8601String(),
+        'description': description,
+        'milestones': milestones,
+        'milestoneCompleted': milestoneCompleted,
+        'targetDate': targetDate?.toIso8601String(),
+        'hoursSpent': hoursSpent,
+        'sessionDates': sessionDates.map((d) => d.toIso8601String()).toList(),
+      };
+
+  factory Project.fromJson(Map<String, dynamic> json) => Project(
+        id: json['id'] as String,
+        name: json['name'] as String,
+        colorHex: json['colorHex'] as String,
+        icon: json['icon'] as String,
+        active: json['active'] as bool,
+        createdAt: DateTime.parse(json['createdAt'] as String),
+        archivedAt: json['archivedAt'] == null ? null : DateTime.parse(json['archivedAt'] as String),
+        description: json['description'] as String? ?? '',
+        milestones: (json['milestones'] as List?)?.map((e) => e as String).toList() ?? const [],
+        milestoneCompleted:
+            (json['milestoneCompleted'] as List?)?.map((e) => e as bool).toList() ?? const [],
+        targetDate: json['targetDate'] == null ? null : DateTime.parse(json['targetDate'] as String),
+        hoursSpent: json['hoursSpent'] as int? ?? 0,
+        sessionDates:
+            (json['sessionDates'] as List?)?.map((e) => DateTime.parse(e as String)).toList() ??
+                const [],
+      );
 }
