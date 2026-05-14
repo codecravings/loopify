@@ -112,4 +112,40 @@ class UserStatsNotifier extends StateNotifier<UserStats> {
     state = updated;
     await HiveService.saveUserStats(updated);
   }
+
+  /// Consume a recovery token and record recovery
+  Future<bool> consumeRecoveryToken() async {
+    if (state.streakRecoveryTokens <= 0) return false;
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    final updated = state.copyWith(
+      streakRecoveryTokens: state.streakRecoveryTokens - 1,
+      lastRecoveryDate: today,
+      totalRecoveriesUsed: state.totalRecoveriesUsed + 1,
+    );
+    state = updated;
+    await HiveService.saveUserStats(updated);
+    return true;
+  }
+
+  /// Full recovery update - resets cold streak, updates stats
+  Future<void> applyRecoveryStats(int habitsRecovered) async {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    final updated = state.copyWith(
+      coldStreak: 0,
+      lifetimeHabitsCompleted: state.lifetimeHabitsCompleted + habitsRecovered,
+      totalDaysActive: state.totalDaysActive + 1,
+      streakRecoveryTokens: state.streakRecoveryTokens - 1,
+      lastRecoveryDate: today,
+      totalRecoveriesUsed: state.totalRecoveriesUsed + 1,
+      // Undo the streak break since we recovered
+      totalStreakBreaks: state.totalStreakBreaks > 0 ? state.totalStreakBreaks - 1 : 0,
+    );
+    state = updated;
+    await HiveService.saveUserStats(updated);
+  }
 }
