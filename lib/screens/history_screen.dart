@@ -11,100 +11,240 @@ import '../widgets/custom_habit_chip.dart';
 import '../providers/user_prefs_provider.dart';
 import '../providers/project_provider.dart';
 import '../providers/custom_habit_provider.dart';
+import '../providers/streak_provider.dart';
+import '../providers/user_stats_provider.dart';
 import '../services/widget_service.dart';
 
-class HistoryScreen extends ConsumerWidget {
+class HistoryScreen extends ConsumerStatefulWidget {
   const HistoryScreen({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HistoryScreen> createState() => _HistoryScreenState();
+}
+
+class _HistoryScreenState extends ConsumerState<HistoryScreen> {
+  DateTime _selectedMonth = DateTime.now();
+
+  @override
+  Widget build(BuildContext context) {
     final allLogs = HiveService.getAllDayLogs();
     final achievementNotes = HiveService.getAllAchievementNotes();
+    final streakState = ref.watch(streakProvider);
+    final userStats = ref.watch(userStatsProvider);
+
+    // Create a map of date -> dayLog for quick lookup
+    final logsByDate = <String, DayLog>{};
+    for (final log in allLogs) {
+      final key = DateFormat('yyyy-MM-dd').format(log.date);
+      logsByDate[key] = log;
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFF0A0E21),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1D1E33),
-        title: const Text('Progress History'),
-        elevation: 0,
-      ),
-      body: allLogs.isEmpty && achievementNotes.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.history,
-                    size: 80,
-                    color: Colors.white.withOpacity(0.3),
+      body: CustomScrollView(
+        slivers: [
+          // App Bar
+          SliverAppBar(
+            backgroundColor: const Color(0xFF1D1E33),
+            expandedHeight: 180,
+            pinned: true,
+            flexibleSpace: FlexibleSpaceBar(
+              background: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF1D1E33), Color(0xFF0A0E21)],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No history yet',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.5),
-                      fontSize: 18,
+                ),
+                child: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 40),
+                        Row(
+                          children: [
+                            _StatCard(
+                              icon: Icons.local_fire_department,
+                              value: '${streakState.currentStreak}',
+                              label: 'Current',
+                              color: Colors.orange,
+                            ),
+                            const SizedBox(width: 12),
+                            _StatCard(
+                              icon: Icons.emoji_events,
+                              value: '${streakState.bestStreak}',
+                              label: 'Best',
+                              color: Colors.amber,
+                            ),
+                            const SizedBox(width: 12),
+                            _StatCard(
+                              icon: Icons.calendar_today,
+                              value: '${userStats.totalDaysActive}',
+                              label: 'Active Days',
+                              color: Colors.green,
+                            ),
+                            const SizedBox(width: 12),
+                            _StatCard(
+                              icon: Icons.check_circle,
+                              value: '${userStats.lifetimeHabitsCompleted}',
+                              label: 'Habits',
+                              color: Colors.blue,
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Start logging habits to see your progress!',
+                ),
+              ),
+              title: const Text('Progress History'),
+              centerTitle: false,
+            ),
+          ),
+
+          // Calendar Section
+          SliverToBoxAdapter(
+            child: _CalendarSection(
+              selectedMonth: _selectedMonth,
+              logsByDate: logsByDate,
+              onMonthChanged: (month) => setState(() => _selectedMonth = month),
+              onDayTap: (date) {
+                final key = DateFormat('yyyy-MM-dd').format(date);
+                final dayLog = logsByDate[key];
+                if (dayLog != null) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => EditDayScreen(dayLog: dayLog),
+                    ),
+                  );
+                } else {
+                  // Create empty log for that date if in the past
+                  if (date.isBefore(DateTime.now())) {
+                    final newLog = DayLog.createEmpty(date);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => EditDayScreen(dayLog: newLog),
+                      ),
+                    );
+                  }
+                }
+              },
+            ),
+          ),
+
+          // Achievement Notes Section
+          if (achievementNotes.isNotEmpty) ...[
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFF6B35).withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.emoji_events, color: Color(0xFFFF6B35), size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Achievements',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      '${achievementNotes.length}',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.5),
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: 120,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: achievementNotes.take(10).length,
+                  itemBuilder: (context, index) {
+                    final note = achievementNotes[index];
+                    return _AchievementCard(note: note);
+                  },
+                ),
+              ),
+            ),
+          ],
+
+          // Recent Days Section
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.history, color: Colors.blue, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Recent Activity',
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.3),
-                      fontSize: 14,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
                   ),
                 ],
               ),
-            )
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Achievement Notes Section
-                  if (achievementNotes.isNotEmpty) ...[
-                    Row(
-                      children: [
-                        const Icon(Icons.emoji_events, color: Color(0xFFFF6B35), size: 24),
-                        const SizedBox(width: 12),
-                        const Text(
-                          'Your Achievements',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    ...achievementNotes.take(10).map((note) => _AchievementNoteCard(note: note)),
-                    const SizedBox(height: 24),
-                    const Divider(color: Colors.white24, height: 1),
-                    const SizedBox(height: 24),
-                  ],
+            ),
+          ),
 
-                  // Day Logs Section
-                  if (allLogs.isNotEmpty) ...[
-                    const Row(
+          // Day Log Cards
+          allLogs.isEmpty
+              ? SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Column(
                       children: [
-                        Icon(Icons.calendar_today, color: Color(0xFFFF6B35), size: 24),
-                        SizedBox(width: 12),
+                        Icon(
+                          Icons.history,
+                          size: 60,
+                          color: Colors.white.withOpacity(0.2),
+                        ),
+                        const SizedBox(height: 12),
                         Text(
-                          'Daily Progress',
+                          'No activity yet',
                           style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            letterSpacing: 0.5,
+                            color: Colors.white.withOpacity(0.4),
+                            fontSize: 16,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
-                    ...allLogs.map((dayLog) {
+                  ),
+                )
+              : SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final dayLog = allLogs[index];
                       return _DayLogCard(
                         dayLog: dayLog,
                         onTap: () {
@@ -116,150 +256,277 @@ class HistoryScreen extends ConsumerWidget {
                           );
                         },
                       );
-                    }),
-                  ],
-                ],
-              ),
-            ),
-    );
-  }
-}
-
-class _AchievementNoteCard extends StatelessWidget {
-  final AchievementNote note;
-
-  const _AchievementNoteCard({required this.note});
-
-  @override
-  Widget build(BuildContext context) {
-    final categoryColor = _getCategoryColor(note.category);
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1D1E33),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: categoryColor.withValues(alpha: 0.3),
-          width: 2,
-        ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Emoji Container
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: categoryColor.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              note.emoji,
-              style: const TextStyle(fontSize: 28),
-            ),
-          ),
-          const SizedBox(width: 16),
-          // Content
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: categoryColor.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            note.categoryEmoji,
-                            style: const TextStyle(fontSize: 12),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            note.categoryName,
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: categoryColor,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Spacer(),
-                    Text(
-                      DateFormat('MMM d, y').format(note.date),
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.white60,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  note.note,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    color: Colors.white,
-                    height: 1.4,
+                    },
+                    childCount: allLogs.length,
                   ),
                 ),
-              ],
-            ),
-          ),
-          // Delete Button
-          IconButton(
-            icon: const Icon(Icons.delete_outline, color: Colors.white38, size: 20),
-            onPressed: () async {
-              final confirm = await showDialog<bool>(
-                context: context,
-                builder: (context) => AlertDialog(
-                  backgroundColor: const Color(0xFF1D1E33),
-                  title: const Text('Delete Achievement?', style: TextStyle(color: Colors.white)),
-                  content: const Text(
-                    'This will permanently remove this achievement from your history.',
-                    style: TextStyle(color: Colors.white70),
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: const Text('Cancel'),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      child: const Text('Delete', style: TextStyle(color: Colors.red)),
-                    ),
-                  ],
-                ),
-              );
 
-              if (confirm == true) {
-                await HiveService.deleteAchievementNote(note.id);
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Achievement deleted'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                  // Force rebuild
-                  (context as Element).markNeedsBuild();
-                }
-              }
-            },
+          const SliverToBoxAdapter(
+            child: SizedBox(height: 100),
           ),
         ],
       ),
     );
   }
+}
+
+class _StatCard extends StatelessWidget {
+  final IconData icon;
+  final String value;
+  final String label;
+  final Color color;
+
+  const _StatCard({
+    required this.icon,
+    required this.value,
+    required this.label,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 20),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: TextStyle(
+                color: color,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(
+              label,
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.6),
+                fontSize: 10,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CalendarSection extends StatelessWidget {
+  final DateTime selectedMonth;
+  final Map<String, DayLog> logsByDate;
+  final ValueChanged<DateTime> onMonthChanged;
+  final ValueChanged<DateTime> onDayTap;
+
+  const _CalendarSection({
+    required this.selectedMonth,
+    required this.logsByDate,
+    required this.onMonthChanged,
+    required this.onDayTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final firstDayOfMonth = DateTime(selectedMonth.year, selectedMonth.month, 1);
+    final lastDayOfMonth = DateTime(selectedMonth.year, selectedMonth.month + 1, 0);
+    final daysInMonth = lastDayOfMonth.day;
+    final startingWeekday = firstDayOfMonth.weekday % 7; // 0 = Sunday
+
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1D1E33),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        children: [
+          // Month Navigation
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              IconButton(
+                onPressed: () {
+                  onMonthChanged(DateTime(selectedMonth.year, selectedMonth.month - 1));
+                },
+                icon: const Icon(Icons.chevron_left, color: Colors.white),
+              ),
+              Text(
+                DateFormat('MMMM yyyy').format(selectedMonth),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              IconButton(
+                onPressed: selectedMonth.isBefore(DateTime(DateTime.now().year, DateTime.now().month))
+                    ? () {
+                        onMonthChanged(DateTime(selectedMonth.year, selectedMonth.month + 1));
+                      }
+                    : null,
+                icon: Icon(
+                  Icons.chevron_right,
+                  color: selectedMonth.isBefore(DateTime(DateTime.now().year, DateTime.now().month))
+                      ? Colors.white
+                      : Colors.white24,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Weekday Headers
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+                .map((day) => SizedBox(
+                      width: 36,
+                      child: Text(
+                        day,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.5),
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ))
+                .toList(),
+          ),
+          const SizedBox(height: 8),
+
+          // Calendar Grid
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 7,
+              mainAxisSpacing: 4,
+              crossAxisSpacing: 4,
+            ),
+            itemCount: startingWeekday + daysInMonth,
+            itemBuilder: (context, index) {
+              if (index < startingWeekday) {
+                return const SizedBox();
+              }
+
+              final day = index - startingWeekday + 1;
+              final date = DateTime(selectedMonth.year, selectedMonth.month, day);
+              final dateKey = DateFormat('yyyy-MM-dd').format(date);
+              final dayLog = logsByDate[dateKey];
+              final isToday = _isToday(date);
+              final isFuture = date.isAfter(DateTime.now());
+              final habitCount = dayLog?.totalHabitsLogged ?? 0;
+
+              return GestureDetector(
+                onTap: isFuture ? null : () => onDayTap(date),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: _getHeatmapColor(habitCount, isFuture),
+                    borderRadius: BorderRadius.circular(8),
+                    border: isToday
+                        ? Border.all(color: const Color(0xFFFF6B35), width: 2)
+                        : null,
+                  ),
+                  child: Center(
+                    child: Text(
+                      '$day',
+                      style: TextStyle(
+                        color: isFuture
+                            ? Colors.white24
+                            : habitCount > 0
+                                ? Colors.white
+                                : Colors.white60,
+                        fontSize: 12,
+                        fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+
+          // Legend
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _LegendItem(color: Colors.transparent, label: '0'),
+              _LegendItem(color: Colors.green.withOpacity(0.3), label: '1-3'),
+              _LegendItem(color: Colors.green.withOpacity(0.5), label: '4-6'),
+              _LegendItem(color: Colors.green.withOpacity(0.7), label: '7-9'),
+              _LegendItem(color: Colors.green, label: '10+'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  bool _isToday(DateTime date) {
+    final now = DateTime.now();
+    return date.year == now.year && date.month == now.month && date.day == now.day;
+  }
+
+  Color _getHeatmapColor(int habitCount, bool isFuture) {
+    if (isFuture) return Colors.white.withOpacity(0.05);
+    if (habitCount == 0) return Colors.white.withOpacity(0.05);
+    if (habitCount <= 3) return Colors.green.withOpacity(0.3);
+    if (habitCount <= 6) return Colors.green.withOpacity(0.5);
+    if (habitCount <= 9) return Colors.green.withOpacity(0.7);
+    return Colors.green;
+  }
+}
+
+class _LegendItem extends StatelessWidget {
+  final Color color;
+  final String label;
+
+  const _LegendItem({required this.color, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Row(
+        children: [
+          Container(
+            width: 14,
+            height: 14,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(3),
+              border: Border.all(color: Colors.white24),
+            ),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.5),
+              fontSize: 10,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AchievementCard extends StatelessWidget {
+  final AchievementNote note;
+
+  const _AchievementCard({required this.note});
 
   Color _getCategoryColor(int category) {
     switch (category) {
@@ -275,6 +542,50 @@ class _AchievementNoteCard extends StatelessWidget {
         return Colors.pink;
     }
   }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _getCategoryColor(note.category);
+
+    return Container(
+      width: 200,
+      margin: const EdgeInsets.only(right: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1D1E33),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(note.emoji, style: const TextStyle(fontSize: 24)),
+              const Spacer(),
+              Text(
+                DateFormat('MMM d').format(note.date),
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.5),
+                  fontSize: 11,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            note.note,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 13,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _DayLogCard extends ConsumerWidget {
@@ -287,274 +598,193 @@ class _DayLogCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final customHabits = ref.watch(customHabitsProvider);
     final isToday = _isToday(dayLog.date);
+    final isYesterday = _isYesterday(dayLog.date);
     final dateStr = isToday
         ? 'Today'
-        : dayLog.date.difference(DateTime.now()).inDays == -1
+        : isYesterday
             ? 'Yesterday'
-            : DateFormat('EEE, MMM d').format(dayLog.date);
+            : DateFormat('EEEE, MMM d').format(dayLog.date);
+
+    final progressPercent = (dayLog.totalHabitsLogged / 11 * 100).clamp(0, 100).toInt();
 
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         decoration: BoxDecoration(
-        color: const Color(0xFF1D1E33),
-        borderRadius: BorderRadius.circular(16),
-        border: isToday
-            ? Border.all(color: const Color(0xFFFF6B35), width: 2)
-            : null,
-      ),
-      child: Column(
-        children: [
-          // Header
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: isToday
-                  ? const Color(0xFFFF6B35).withOpacity(0.1)
-                  : Colors.transparent,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(16),
-                topRight: Radius.circular(16),
-              ),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  isToday ? Icons.today : Icons.calendar_today,
-                  color: isToday ? const Color(0xFFFF6B35) : Colors.white70,
-                  size: 20,
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  dateStr,
-                  style: TextStyle(
-                    color: isToday ? const Color(0xFFFF6B35) : Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _getProgressColor(dayLog.totalHabitsLogged)
-                        .withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    '${dayLog.totalHabitsLogged} habits',
-                    style: TextStyle(
-                      color: _getProgressColor(dayLog.totalHabitsLogged),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
+          color: const Color(0xFF1D1E33),
+          borderRadius: BorderRadius.circular(16),
+          border: isToday
+              ? Border.all(color: const Color(0xFFFF6B35), width: 2)
+              : null,
+        ),
+        child: Column(
+          children: [
+            // Header with progress bar
+            Container(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  // Date & Progress
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          dateStr,
+                          style: TextStyle(
+                            color: isToday ? const Color(0xFFFF6B35) : Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        // Progress bar
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: dayLog.totalHabitsLogged / 11,
+                            backgroundColor: Colors.white.withOpacity(0.1),
+                            valueColor: AlwaysStoppedAnimation(
+                              _getProgressColor(dayLog.totalHabitsLogged),
+                            ),
+                            minHeight: 6,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Icon(
-                  Icons.edit,
-                  color: Colors.white.withOpacity(0.4),
-                  size: 18,
-                ),
-              ],
+                  const SizedBox(width: 16),
+                  // Habit count circle
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _getProgressColor(dayLog.totalHabitsLogged).withOpacity(0.2),
+                      border: Border.all(
+                        color: _getProgressColor(dayLog.totalHabitsLogged),
+                        width: 2,
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          '${dayLog.totalHabitsLogged}',
+                          style: TextStyle(
+                            color: _getProgressColor(dayLog.totalHabitsLogged),
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          'habits',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.5),
+                            fontSize: 9,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          // Habits Grid
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _HabitBadge(
-                  name: 'Meditation',
-                  logged: dayLog.meditation.logged,
-                  color: habitDetails[HabitType.meditation]!.color,
-                  icon: habitDetails[HabitType.meditation]!.icon,
-                  details: dayLog.meditation.seconds != null
-                      ? '${(dayLog.meditation.seconds! / 60).round()}m'
-                      : null,
+            // Completed habits row
+            if (dayLog.totalHabitsLogged > 0)
+              Container(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                child: Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: _buildCompletedHabits(dayLog, customHabits),
                 ),
-                _HabitBadge(
-                  name: 'Serum',
-                  logged: dayLog.serum.logged,
-                  color: habitDetails[HabitType.serum]!.color,
-                  icon: habitDetails[HabitType.serum]!.icon,
-                ),
-                _HabitBadge(
-                  name: 'Cold Shower',
-                  logged: dayLog.coldShower.logged,
-                  color: habitDetails[HabitType.coldShower]!.color,
-                  icon: habitDetails[HabitType.coldShower]!.icon,
-                ),
-                _HabitBadge(
-                  name: 'Jaw Gym',
-                  logged: dayLog.jawGym.logged,
-                  color: habitDetails[HabitType.jawGym]!.color,
-                  icon: habitDetails[HabitType.jawGym]!.icon,
-                ),
-                _HabitBadge(
-                  name: 'Chew Quest',
-                  logged: dayLog.chewQuest.logged,
-                  color: habitDetails[HabitType.chewQuest]!.color,
-                  icon: habitDetails[HabitType.chewQuest]!.icon,
-                ),
-                _HabitBadge(
-                  name: 'Protein',
-                  logged: dayLog.protein.logged,
-                  color: habitDetails[HabitType.protein]!.color,
-                  icon: habitDetails[HabitType.protein]!.icon,
-                  details: dayLog.protein.grams != null
-                      ? '${dayLog.protein.grams}g'
-                      : null,
-                ),
-                _HabitBadge(
-                  name: 'Study',
-                  logged: dayLog.study.logged,
-                  color: habitDetails[HabitType.study]!.color,
-                  icon: habitDetails[HabitType.study]!.icon,
-                  details: dayLog.study.seconds != null
-                      ? '${(dayLog.study.seconds! / 60).round()}m'
-                      : null,
-                ),
-                _HabitBadge(
-                  name: 'Chess',
-                  logged: dayLog.chess.logged,
-                  color: habitDetails[HabitType.chess]!.color,
-                  icon: habitDetails[HabitType.chess]!.icon,
-                  details: dayLog.chess.seconds != null
-                      ? '${(dayLog.chess.seconds! / 60).round()}m'
-                      : null,
-                ),
-                _HabitBadge(
-                  name: 'Cycling',
-                  logged: dayLog.cycling.logged,
-                  color: habitDetails[HabitType.cycling]!.color,
-                  icon: habitDetails[HabitType.cycling]!.icon,
-                  details: dayLog.cycling.seconds != null
-                      ? '${(dayLog.cycling.seconds! / 60).round()}m'
-                      : null,
-                ),
-                _HabitBadge(
-                  name: 'Build',
-                  logged: dayLog.buildStreak.logged,
-                  color: habitDetails[HabitType.buildStreak]!.color,
-                  icon: habitDetails[HabitType.buildStreak]!.icon,
-                ),
-                _HabitBadge(
-                  name: 'Scientist',
-                  logged: dayLog.madScientist.logged,
-                  color: habitDetails[HabitType.madScientist]!.color,
-                  icon: habitDetails[HabitType.madScientist]!.icon,
-                ),
-                // Add custom habits
-                if (dayLog.customHabits != null && dayLog.customHabits!.isNotEmpty)
-                  ...dayLog.customHabits!.entries.map((entry) {
-                    final habitId = entry.key;
-                    final habitLog = entry.value;
-                    // Find the custom habit definition
-                    final customHabit = customHabits.firstWhere(
-                      (h) => h.id == habitId,
-                      orElse: () => customHabits.first, // Fallback, shouldn't happen
-                    );
-                    return _HabitBadge(
-                      name: customHabit.name,
-                      logged: habitLog.logged,
-                      color: customHabit.color,
-                      icon: customHabit.icon,
-                      details: habitLog.seconds != null
-                          ? '${(habitLog.seconds! / 60).round()}m'
-                          : habitLog.grams != null
-                              ? '${habitLog.grams}'
-                              : null,
-                    );
-                  }),
-              ],
-            ),
-          ),
-        ],
-      ),
+              ),
+          ],
+        ),
       ),
     );
   }
 
+  List<Widget> _buildCompletedHabits(DayLog dayLog, List customHabits) {
+    final completed = <Widget>[];
+
+    void addIfLogged(bool logged, HabitType type) {
+      if (logged) {
+        final info = habitDetails[type]!;
+        completed.add(_MiniHabitBadge(
+          icon: info.icon,
+          color: info.color,
+        ));
+      }
+    }
+
+    addIfLogged(dayLog.meditation.logged, HabitType.meditation);
+    addIfLogged(dayLog.serum.logged, HabitType.serum);
+    addIfLogged(dayLog.coldShower.logged, HabitType.coldShower);
+    addIfLogged(dayLog.jawGym.logged, HabitType.jawGym);
+    addIfLogged(dayLog.chewQuest.logged, HabitType.chewQuest);
+    addIfLogged(dayLog.protein.logged, HabitType.protein);
+    addIfLogged(dayLog.study.logged, HabitType.study);
+    addIfLogged(dayLog.chess.logged, HabitType.chess);
+    addIfLogged(dayLog.cycling.logged, HabitType.cycling);
+    addIfLogged(dayLog.buildStreak.logged, HabitType.buildStreak);
+    addIfLogged(dayLog.madScientist.logged, HabitType.madScientist);
+
+    // Custom habits
+    if (dayLog.customHabits != null) {
+      for (final entry in dayLog.customHabits!.entries) {
+        if (entry.value.logged) {
+          final habitIndex = customHabits.indexWhere((h) => h.id == entry.key);
+          if (habitIndex != -1) {
+            final habit = customHabits[habitIndex];
+            completed.add(_MiniHabitBadge(
+              icon: habit.icon,
+              color: habit.color,
+            ));
+          }
+        }
+      }
+    }
+
+    return completed;
+  }
+
   bool _isToday(DateTime date) {
     final now = DateTime.now();
-    return date.year == now.year &&
-        date.month == now.month &&
-        date.day == now.day;
+    return date.year == now.year && date.month == now.month && date.day == now.day;
+  }
+
+  bool _isYesterday(DateTime date) {
+    final yesterday = DateTime.now().subtract(const Duration(days: 1));
+    return date.year == yesterday.year && date.month == yesterday.month && date.day == yesterday.day;
   }
 
   Color _getProgressColor(int count) {
     if (count == 0) return Colors.grey;
     if (count < 3) return Colors.orange;
     if (count < 6) return Colors.amber;
-    if (count < 11) return Colors.lightGreen;
+    if (count < 9) return Colors.lightGreen;
     return Colors.green;
   }
 }
 
-class _HabitBadge extends StatelessWidget {
-  final String name;
-  final bool logged;
-  final Color color;
+class _MiniHabitBadge extends StatelessWidget {
   final IconData icon;
-  final String? details;
+  final Color color;
 
-  const _HabitBadge({
-    required this.name,
-    required this.logged,
-    required this.color,
-    required this.icon,
-    this.details,
-  });
+  const _MiniHabitBadge({required this.icon, required this.color});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
-        color: logged ? color.withOpacity(0.2) : const Color(0xFF0A0E21),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: logged ? color : Colors.white.withOpacity(0.1),
-          width: 1.5,
-        ),
+        color: color.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(8),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            logged ? Icons.check_circle : icon,
-            color: logged ? color : Colors.white.withOpacity(0.3),
-            size: 16,
-          ),
-          const SizedBox(width: 6),
-          Text(
-            name,
-            style: TextStyle(
-              color: logged ? color : Colors.white.withOpacity(0.5),
-              fontSize: 12,
-              fontWeight: logged ? FontWeight.bold : FontWeight.normal,
-            ),
-          ),
-          if (details != null) ...[
-            const SizedBox(width: 4),
-            Text(
-              details!,
-              style: TextStyle(
-                color: color,
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ],
-      ),
+      child: Icon(icon, color: color, size: 16),
     );
   }
 }
@@ -562,8 +792,13 @@ class _HabitBadge extends StatelessWidget {
 // Edit Day Screen
 class EditDayScreen extends ConsumerStatefulWidget {
   final DayLog dayLog;
+  final Future<void> Function(DayLog savedLog)? onSaveCallback;
 
-  const EditDayScreen({Key? key, required this.dayLog}) : super(key: key);
+  const EditDayScreen({
+    Key? key,
+    required this.dayLog,
+    this.onSaveCallback,
+  }) : super(key: key);
 
   @override
   ConsumerState<EditDayScreen> createState() => _EditDayScreenState();
@@ -635,6 +870,11 @@ class _EditDayScreenState extends ConsumerState<EditDayScreen> {
       WidgetService.updateWidget();
     }
 
+    // Call the callback if provided (e.g., for recovery flow)
+    if (widget.onSaveCallback != null) {
+      await widget.onSaveCallback!(_editedDayLog);
+    }
+
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -673,8 +913,41 @@ class _EditDayScreenState extends ConsumerState<EditDayScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Progress indicator
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1D1E33),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    '${_editedDayLog.totalHabitsLogged}/11',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: LinearProgressIndicator(
+                        value: _editedDayLog.totalHabitsLogged / 11,
+                        backgroundColor: Colors.white.withOpacity(0.1),
+                        valueColor: const AlwaysStoppedAnimation(Color(0xFFFF6B35)),
+                        minHeight: 10,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
             Text(
-              'Tap any habit to edit',
+              'Tap any habit to toggle',
               style: TextStyle(
                 color: Colors.white.withOpacity(0.6),
                 fontSize: 14,
