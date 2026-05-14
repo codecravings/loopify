@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/user_prefs_provider.dart';
 import '../models/user_prefs.dart';
 import 'manage_habits_screen.dart';
+import 'backup_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -193,6 +194,53 @@ class SettingsScreen extends ConsumerWidget {
                   context,
                   MaterialPageRoute(
                     builder: (context) => const ManageHabitsScreen(),
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Backup & Restore Section
+          const Text(
+            'Backup & Restore',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF1D1E33),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.grey[800]!, width: 2),
+            ),
+            child: ListTile(
+              contentPadding: const EdgeInsets.all(16),
+              leading: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.cyanAccent.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.cloud_sync,
+                  color: Colors.cyanAccent,
+                  size: 24,
+                ),
+              ),
+              title: const Text(
+                'Backup & Restore',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+              subtitle: const Text(
+                'Export all data to Gmail/Drive/Files. Import on another device — streak, habits, projects, everything.',
+                style: TextStyle(color: Colors.white54, fontSize: 13),
+              ),
+              trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white54, size: 18),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const BackupScreen(),
                   ),
                 );
               },
