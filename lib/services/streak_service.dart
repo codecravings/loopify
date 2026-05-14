@@ -188,4 +188,29 @@ class StreakService {
     }
     return null;
   }
+
+  /// Restore streak after recovery
+  /// Called when user fills in yesterday's habits via recovery flow
+  static Future<StreakState> restoreStreakAfterRecovery(int streakToRestore) async {
+    final currentState = HiveService.getStreakState();
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    // Restore the streak + 1 (for the recovered day)
+    final restoredStreak = streakToRestore + 1;
+    final newBest = restoredStreak > currentState.bestStreak
+        ? restoredStreak
+        : currentState.bestStreak;
+
+    final updatedState = currentState.copyWith(
+      currentStreak: restoredStreak,
+      bestStreak: newBest,
+      lastLoggedDate: today,
+    );
+
+    await HiveService.saveStreakState(updatedState);
+    debugPrint('StreakService: Streak restored to $restoredStreak (was $streakToRestore + 1 for recovered day)');
+
+    return updatedState;
+  }
 }
