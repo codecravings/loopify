@@ -156,4 +156,44 @@ class DayLog {
       madScientist: HabitLog(logged: false),
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'date': date.toIso8601String(),
+        'mood': mood,
+        'notes': notes,
+        'meditation': meditation.toJson(),
+        'serum': serum.toJson(),
+        'coldShower': coldShower.toJson(),
+        'jawGym': jawGym.toJson(),
+        'chewQuest': chewQuest.toJson(),
+        'protein': protein.toJson(),
+        'study': study.toJson(),
+        'chess': chess.toJson(),
+        'cycling': cycling.toJson(),
+        'buildStreak': buildStreak.toJson(),
+        'madScientist': madScientist.toJson(),
+        'customHabits': customHabits?.map((k, v) => MapEntry(k, v.toJson())),
+      };
+
+  factory DayLog.fromJson(Map<String, dynamic> json) => DayLog(
+        id: json['id'] as String,
+        date: DateTime.parse(json['date'] as String),
+        mood: json['mood'] as String?,
+        notes: json['notes'] as String?,
+        meditation: HabitLog.fromJson(Map<String, dynamic>.from(json['meditation'] as Map)),
+        serum: HabitLog.fromJson(Map<String, dynamic>.from(json['serum'] as Map)),
+        coldShower: HabitLog.fromJson(Map<String, dynamic>.from(json['coldShower'] as Map)),
+        jawGym: HabitLog.fromJson(Map<String, dynamic>.from(json['jawGym'] as Map)),
+        chewQuest: HabitLog.fromJson(Map<String, dynamic>.from(json['chewQuest'] as Map)),
+        protein: HabitLog.fromJson(Map<String, dynamic>.from(json['protein'] as Map)),
+        study: HabitLog.fromJson(Map<String, dynamic>.from(json['study'] as Map)),
+        chess: HabitLog.fromJson(Map<String, dynamic>.from(json['chess'] as Map)),
+        cycling: HabitLog.fromJson(Map<String, dynamic>.from(json['cycling'] as Map)),
+        buildStreak: HabitLog.fromJson(Map<String, dynamic>.from(json['buildStreak'] as Map)),
+        madScientist: HabitLog.fromJson(Map<String, dynamic>.from(json['madScientist'] as Map)),
+        customHabits: (json['customHabits'] as Map?)?.map(
+          (k, v) => MapEntry(k as String, HabitLog.fromJson(Map<String, dynamic>.from(v as Map))),
+        ),
+      );
 }

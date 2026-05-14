@@ -42,4 +42,20 @@ class HabitLog {
       projectIds: projectIds ?? this.projectIds,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'logged': logged,
+        'seconds': seconds,
+        'minutes': minutes,
+        'grams': grams,
+        'projectIds': projectIds,
+      };
+
+  factory HabitLog.fromJson(Map<String, dynamic> json) => HabitLog(
+        logged: json['logged'] as bool? ?? false,
+        seconds: json['seconds'] as int?,
+        minutes: json['minutes'] as int?,
+        grams: json['grams'] as int?,
+        projectIds: (json['projectIds'] as List?)?.map((e) => e as String).toList(),
+      );
 }
