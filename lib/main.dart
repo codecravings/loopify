@@ -6,6 +6,7 @@ import 'services/hive_service.dart';
 import 'services/widget_service.dart';
 import 'services/midnight_service.dart';
 import 'services/notification_service.dart';
+import 'services/challenge_service.dart';
 import 'screens/main_screen.dart';
 
 void main() async {
@@ -41,6 +42,10 @@ void main() async {
       );
       await NotificationService.scheduleMidnightCheck();
     }
+
+    // Always reschedule active challenge notifications on startup
+    // (these are independent of the general notifications toggle)
+    await ChallengeService.rescheduleAllNotifications();
   } catch (e) {
     print('Notification initialization error: $e');
   }
