@@ -1,184 +1,124 @@
 # Loopify 🔥
 
-> 💪 A habit tracking app that turns consistency into a game — streaks, milestones, motivational widgets, and a bit of attitude. 🚀
+A habit tracking app that helps you build consistency through gamification, streaks, and motivational widgets.
 
----
+## Features
 
-## ✨ Features
+- **11 Customizable Habits**: Track meditation, skincare, workouts, study sessions, and more
+- **Custom Habit Creation**: Add unlimited custom habits with personalized icons, colors, and types
+- **Streak System**: Build momentum with daily streaks and milestone rewards
+- **Home Screen Widget**: Dynamic Android widget that adapts based on your daily progress
+- **Project Tracking**: Long-term projects with customizable icons and colors
+- **Dark Mode Design**: Modern UI with Material Design 3
+- **Offline-First**: All data stored locally using Hive database
+- **Progress Persistence**: All habit data is stored permanently in local database
 
-- 🎯 **11 Predefined Habits** — meditation, skincare, workouts, study sessions, and more
-- ➕ **Unlimited Custom Habits** — build your own with personalized icons, colors, and types
-- 🔥 **Streak System** — daily streaks, weekly grace passes, milestone rewards
-- 📱 **Home Screen Widget** — dynamic Android widget that morphs as your day fills up
-- 🎨 **3 Habit Types** — Simple ✅, Duration ⏱️, Numeric 🔢 (with custom units)
-- 📊 **Project Tracking** — long-term goals with custom icons and colors
-- 🌙 **Dark Mode First** — modern Material Design 3 aesthetic
-- 💾 **Offline-First** — all data stored locally with Hive (zero cloud, zero accounts)
-- 🔔 **Smart Notifications** — evening reminders + streak warnings
-- 🏆 **Achievements & Notes** — capture wins as they happen
+## Tech Stack
 
----
+- **Flutter**: Cross-platform mobile framework (Dart)
+- **Riverpod**: State management with providers and notifiers
+- **Hive**: Local NoSQL database for offline storage
+- **Kotlin**: Native Android widget implementation
+- **Home Widget Plugin**: Flutter bridge for home screen widgets
 
-## 🛠️ Tech Stack
+## File Structure
 
-| Layer | Tool |
-|------|------|
-| 📱 Framework | Flutter (Dart) |
-| 🧠 State | Riverpod |
-| 💾 Database | Hive (NoSQL, local) |
-| 🔔 Notifications | flutter_local_notifications + timezone |
-| 🤖 Native Widget | Kotlin + AppWidgetProvider |
-| 🌉 Bridge | home_widget plugin |
-| 🎬 Animations | Lottie + Confetti |
+### Core App Files
 
----
+- **lib/main.dart**: App entry point, initializes Hive and providers
+- **lib/screens/main_screen.dart**: Bottom navigation with home, stats, and projects tabs
+- **lib/screens/home_screen.dart**: Main habit tracking interface
+- **lib/screens/stats_screen.dart**: Streak visualization and progress stats
+- **lib/screens/projects_screen.dart**: Long-term project management
 
-## 🚀 Getting Started
+### State Management
 
-```bash
-# 1️⃣ Install dependencies
-flutter pub get
+- **lib/providers/habit_provider.dart**: Manages daily habit completion state
+- **lib/providers/project_provider.dart**: Manages active and archived projects
+- **lib/providers/streak_provider.dart**: Tracks and updates streak counts
 
-# 2️⃣ Generate Hive adapters
-flutter pub run build_runner build
+### Services
 
-# 3️⃣ Run the app
-flutter run
+- **lib/services/hive_service.dart**: Database operations for habits, projects, and streaks
+- **lib/services/widget_service.dart**: Updates home screen widget with current progress
+- **lib/services/notifications_service.dart**: Daily reminders and streak notifications
 
-# 📦 Build release APK
-flutter build apk --release
-```
+### Constants & Models
 
-> 💡 Widget images live in `assets/widget/` (`1.png`, `2.png`, `3.png`).
+- **lib/constants/habits.dart**: Habit definitions, icons, colors, and motivational quips
+- **lib/models/habit_log.dart**: Data model for daily habit entries
+- **lib/models/day_log.dart**: Daily log with all 11 habits + custom habits map
+- **lib/models/project.dart**: Data model for projects with metadata
+- **lib/models/custom_habit.dart**: Data model for user-created custom habits
+- **lib/models/streak_state.dart**: Current streak and best streak tracking
 
----
+### Android Widget
 
-## 🧱 Architecture
+- **android/app/src/main/kotlin/com/loopify/loopify/LoopifyWidget.kt**: Native widget provider
+- **android/app/src/main/res/layout/loopify_widget.xml**: Widget layout (3x1 horizontal design)
+- **android/app/src/main/res/xml/loopify_widget_info.xml**: Widget size configuration
+- **android/app/src/main/res/drawable/widget_background.xml**: Dark gradient background
 
-```
-🗂️  Models (Hive)  →  🔧 Services  →  🧠 Providers (Riverpod)  →  🎨 UI
-```
+## Widget Logic
 
-- **`lib/models/`** — Hive `@HiveType` data classes (`.g.dart` files are generated 🤖)
-- **`lib/services/`** — database, notifications, widget bridge, streak calc, midnight rollover
-- **`lib/providers/`** — Riverpod `StateNotifier`s
-- **`lib/screens/`** — full-page UIs
-- **`lib/widgets/`** — reusable components (modals, chips, rings, gauges)
+The home screen widget dynamically updates based on habits completed today:
 
-### 🔌 Android Widget Bridge
+- **0-2 habits**: Shows `1.png` + random START quip ("Wake up LEGEND! 💥")
+- **3-5 habits**: Shows `2.png` + random KEEP GOING quip ("ON FIRE! Keep going! 🔥")
+- **6+ habits**: Shows `3.png` + random UNSTOPPABLE quip ("LEGEND STATUS! 🏆")
 
-```
-Flutter (WidgetService)  ─►  HomeWidget.saveWidgetData()
-                              │
-                              ▼
-                  Native LoopifyWidget.kt  ─►  RemoteViews 📺
-```
+Widget updates automatically when habits are logged. Tap to open app.
 
----
+## Design Philosophy
 
-## 🎯 The 11 Predefined Habits
+- **Gamification**: Turn habits into a game with streaks, milestones, and motivational quips
+- **Brevity**: Short, punchy messages with Hindi/English mix for personality
+- **Visual Feedback**: Dynamic widgets and progress indicators for instant gratification
+- **Dark Aesthetics**: Modern dark mode (#0A0E21 background, #1D1E33 cards, orange accents)
 
-| # | Habit | Vibe | Color |
-|---|-------|------|-------|
-| 1️⃣ | 🧘 Sit & Shine | Meditation | Purple |
-| 2️⃣ | ✨ Glow Potion | Skincare / Serum | Pink |
-| 3️⃣ | 🥶 Ice Warrior | Cold Shower | Blue |
-| 4️⃣ | 💪 Jaw Gym | Face Exercises | Orange |
-| 5️⃣ | 😬 Chew Quest | Chewing Drills | Cyan |
-| 6️⃣ | 🥩 Protein Power-Up | Protein Intake | Green |
-| 7️⃣ | 📚 Study Grind | Study Time | Indigo |
-| 8️⃣ | ♟️ Mind Gambit | Chess | Brown |
-| 9️⃣ | 🚴 Pedal Power | Cycling | Light Green |
-| 🔟 | 💻 Build Streak | Coding Projects | Deep Orange |
-| 1️⃣1️⃣ | 🧪 Mad Scientist Mode | Experiments | Deep Purple |
+## Setup
 
----
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   flutter pub get
+   ```
+3. Add widget images to `assets/`:
+   - `1.png`, `2.png`, `3.png`
+4. Run the app:
+   ```bash
+   flutter run
+   ```
 
-## 🪟 Widget Logic
+## Habit Types
 
-The home screen widget reacts to your daily progress:
+1. **Sit & Shine** (Meditation) - Purple
+2. **Glow Potion** (Serum) - Pink
+3. **Ice Warrior** (Cold Shower) - Blue
+4. **Jaw Gym** (Face Exercises) - Orange
+5. **Chew Quest** (Chewing Exercises) - Cyan
+6. **Protein Power-Up** (Protein Intake) - Green
+7. **Study Grind** (Study Time) - Indigo
+8. **Mind Gambit** (Chess) - Brown
+9. **Pedal Power** (Cycling) - Light Green
+10. **Build Streak** (Coding Projects) - Deep Orange
+11. **Mad Scientist Mode** (Experiments) - Deep Purple
 
-| Habits Logged | Image | Vibe |
-|--------------|-------|------|
-| 0–2 ✅ | `1.png` | 💥 *"Wake up LEGEND!"* |
-| 3–5 ✅ | `2.png` | 🔥 *"ON FIRE! Keep going!"* |
-| 6+ ✅ | `3.png` | 🏆 *"LEGEND STATUS!"* |
+## Custom Habits
 
-> ⚡ Updates automatically on every habit log. Tap to open the app.
+Users can create unlimited custom habits with:
+- **3 Types**: Simple (checkbox), Duration (minutes), Numeric (with custom units)
+- **Custom Icons**: 16 popular icons to choose from
+- **Custom Colors**: 10 vibrant colors
+- **Motivational Quotes**: Personalized microcopy for each habit
+- **Persistent Storage**: All custom habits saved in Hive database
+- **Progress Tracking**: Counts toward daily total and widget updates
 
----
+## Pending Features
 
-## 🔥 Streak Mechanics
-
-- 🎚️ **Strict mode** → ≥ 3 habits/day count
-- 🌱 **Lenient mode** → ≥ 1 habit/day counts
-- 🛡️ **Grace pass** → 1 free skip per week (auto-resets every Monday)
-- 🏅 **Milestones** at **3 / 7 / 21 / 100** days — celebration unlocked 🎉
-- ☠️ **Streak break** → obituary modal so you can grieve properly
-
----
-
-## 🎨 Custom Habits
-
-Build your own with:
-
-- 🧮 **3 types**: Simple ✅ • Duration ⏱️ • Numeric 🔢
-- 🖼️ **16 icons** to choose from
-- 🎨 **10 vibrant colors**
-- 💬 **Personal microcopy** for that habit
-- 📈 Counts toward your daily total + widget
-
----
-
-## 🌙 Theme & Vibe
-
-- 🎨 **Background:** `#0A0E21` (deep dark blue-black)
-- 🟧 **Cards:** `#1D1E33`
-- 🔥 **Accent:** Orange / Deep Orange
-- 🌐 **Language:** Hindi/English mix in motivational quips for personality
-
----
-
-## 📱 iOS Notes
-
-Loopify is built on Flutter, so the core app — habits, streaks, scheduled notifications, Hive persistence, projects, achievements — runs on iOS as-is once the project is opened on a Mac.
-
-### 🍏 First-time setup on macOS
-
-```bash
-flutter pub get
-cd ios
-pod install
-open Runner.xcworkspace
-```
-
-> ⚙️ Minimum iOS deployment target is **13.0** (required by `flutter_local_notifications` 17.x).
-> 🆔 Bundle identifier matches the Android app: `com.loopify.loopify`.
-> 🔔 Notification permissions are requested at runtime by `flutter_local_notifications`. Foreground banners are wired through `UNUserNotificationCenter` in `AppDelegate.swift`.
-
-### 🪟 Home-screen widget on iOS
-
-The **Android home-screen widget does not auto-port to iOS**. iOS widgets are a separate native surface (WidgetKit) and need their own target inside Xcode. To add one later:
-
-1. ➕ In Xcode: `File → New → Target → Widget Extension`
-2. 🤝 Share data with the Flutter app via an **App Group** (e.g. `group.com.loopify.loopify`) so `home_widget` can write into it
-3. 🎨 Re-implement the widget UI in **SwiftUI** (mirroring `LoopifyWidget.kt`'s 3-state vibe)
-
-Until then, on iOS the widget is gracefully skipped — `home_widget` calls become no-ops and the rest of the app behaves normally.
-
----
-
-## 🚧 Roadmap
-
-- [ ] 🍎 iOS widget support
-- [ ] 📅 Weekly / monthly habit analytics
-- [ ] ✏️ Manage / edit / delete custom habits UI polish
-- [ ] 📦 Unarchive + delete options for archived projects
-- [ ] 🎨 Improved color & icon picker UI for projects
-- [ ] 📈 Project statistics and progress tracking
-
----
-
-## 📜 License
-
-Personal project — all rights reserved. ✌️
+- [ ] Unarchive and delete options for archived projects
+- [ ] Improved color and icon picker UI for projects
+- [ ] Project statistics and progress tracking
+- [ ] iOS widget support
+- [ ] Weekly/monthly habit analytics
+- [ ] Manage/edit/delete custom habits
