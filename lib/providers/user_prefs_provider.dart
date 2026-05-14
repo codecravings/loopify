@@ -59,4 +59,28 @@ class UserPrefsNotifier extends StateNotifier<UserPrefs> {
       await NotificationService.scheduleEveningReminder(hour: hour, minute: minute);
     }
   }
+
+  Future<void> hideHabit(String habitName) async {
+    if (state.hiddenHabits.contains(habitName)) return;
+    final updated = List<String>.from(state.hiddenHabits)..add(habitName);
+    await updatePrefs(state.copyWith(hiddenHabits: updated));
+  }
+
+  Future<void> showHabit(String habitName) async {
+    if (!state.hiddenHabits.contains(habitName)) return;
+    final updated = List<String>.from(state.hiddenHabits)..remove(habitName);
+    await updatePrefs(state.copyWith(hiddenHabits: updated));
+  }
+
+  Future<void> toggleHabitVisibility(String habitName) async {
+    if (state.hiddenHabits.contains(habitName)) {
+      await showHabit(habitName);
+    } else {
+      await hideHabit(habitName);
+    }
+  }
+
+  bool isHabitHidden(String habitName) {
+    return state.hiddenHabits.contains(habitName);
+  }
 }
